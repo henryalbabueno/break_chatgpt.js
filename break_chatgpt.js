@@ -2,41 +2,24 @@
 
 class BreakChatGPT {
     constructor(value, type = "int") {
-        if (typeof value === "number") {
-            this.type = "int";
-            this.value = value;
-        } else if (typeof value === "bigint") {
+        if (typeof value === "number" || typeof value === "bigint") {
             this.type = "int";
             this.value = value;
         } else if (typeof value === "string") {
             const num = Number(value);
-            if (!isNaN(num)) {
-                this.type = "int";
-                this.value = num;
-            } else {
-                throw new Error("String must represent a number");
-            }
+            if (!isNaN(num)) this.value = num, this.type = "int";
+            else throw new Error("String must represent a number");
         } else if (typeof value === "object") {
-            if (type === "exp") {
-                this.type = "exp";
-                this.value = { base: value.base, exponent: value.exponent };
-            } else if (type === "up") {
-                this.type = "up";
-                this.value = {
-                    base: value.base,
-                    height: value.height,
-                    arrows: value.arrows,
-                    multiplier: value.multiplier || 1
-                };
-            } else if (type === "sum" || type === "product" || type === "diff" || type === "quot") {
-                this.type = type;
-                this.value = value; // { a, b }
-            } else {
-                throw new Error("Object must have type 'exp', 'up', 'sum', 'product', 'diff', or 'quot'");
-            }
-        } else {
-            throw new TypeError("Unsupported type for BreakChatGPT");
-        }
+            if (type === "exp") this.type = "exp", this.value = { base: value.base, exponent: value.exponent };
+            else if (type === "up") this.type = "up", this.value = {
+                base: value.base,
+                height: value.height,
+                arrows: value.arrows,
+                multiplier: value.multiplier || 1
+            };
+            else if (["sum", "product", "diff", "quot"].includes(type)) this.type = type, this.value = value;
+            else throw new Error("Invalid object type for BreakChatGPT");
+        } else throw new TypeError("Unsupported type for BreakChatGPT");
     }
 
     // ----------------- Approximate / Symbolic -----------------
@@ -46,99 +29,66 @@ class BreakChatGPT {
         if (this.type === "int") return this.value;
 
         if (this.type === "exp") {
-            const result = Math.pow(this.value.base, this.value.exponent);
-            return result <= MAX_NUM ? result : this; // symbolic if too big
+            const val = Math.pow(this.value.base, this.value.exponent);
+            return val <= MAX_NUM ? val : this; // symbolic if too big
         }
 
         if (this.type === "up") {
             const { base, height, arrows } = this.value;
 
-            // 1 arrow = normal exponent
-            if (arrows === 1) {
-                const result = Math.pow(base, height);
-                return result <= MAX_NUM ? result : this;
-            }
-
-            // 2 arrows = tetration
-            if (arrows === 2) {
-                let result = base;
-                for (let i = 1; i < height; i++) {
-                    // log10 trick to prevent overflow
-                    const power = Math.log10(base) * result;
-                    const mantissa = Math.pow(10, power % 1);
-                    const exponent = Math.floor(power);
-                    result = mantissa * Math.pow(10, exponent);
-
-                    if (result > MAX_NUM) return this; // symbolic fallback
+            // Recursive function to compute up-arrow numerically
+            const computeUp = (b, h, a) => {
+                if (a === 1) return Math.pow(b, h);
+                if (h === 1) return b;
+                let result = b;
+                for (let i = 1; i < h; i++) {
+                    result = computeUp(b, result, a - 1);
+                    if (result > MAX_NUM) return null; // symbolic fallback
                 }
                 return result;
-            }
+            };
 
-            // 3+ arrows = symbolic
-            return this;
+            const numericResult = computeUp(base, height, arrows);
+            return numericResult !== null ? numericResult : this;
         }
 
         // sums, products, quotients remain symbolic
         if (["sum", "product", "diff", "quot"].includes(this.type)) return this;
 
-        return NaN; // fallback
+        return NaN;
     }
 
     // ----------------- Arithmetic -----------------
     add(other) {
-        const a = this.approximate();
-        const b = other.approximate();
-
-        // Numeric addition
+        const a = this.approximate(), b = other.approximate();
         if (typeof a === "number" && typeof b === "number") return new BreakChatGPT(a + b);
-        if (typeof a === "bigint" && typeof b === "bigint") return new BreakChatGPT(a + b);
-
-        // Symbolic sum
         return new BreakChatGPT({ a, b }, "sum");
     }
 
     subtract(other) {
-        const a = this.approximate();
-        const b = other.approximate();
-
+        const a = this.approximate(), b = other.approximate();
         if (typeof a === "number" && typeof b === "number") return new BreakChatGPT(a - b);
-        if (typeof a === "bigint" && typeof b === "bigint") return new BreakChatGPT(a - b);
-
         return new BreakChatGPT({ a, b }, "diff");
     }
 
     multiply(other) {
-        const a = this.approximate();
-        const b = other.approximate();
-
+        const a = this.approximate(), b = other.approximate();
         if (typeof a === "number" && typeof b === "number") return new BreakChatGPT(a * b);
-        if (typeof a === "bigint" && typeof b === "bigint") return new BreakChatGPT(a * b);
-
         return new BreakChatGPT({ a, b }, "product");
     }
 
     divide(other) {
-        const a = this.approximate();
-        const b = other.approximate();
-
-        if ((typeof a === "number" || typeof a === "bigint") &&
-            (typeof b === "number" || typeof b === "bigint")) {
-            return new BreakChatGPT(a / b);
-        }
-
+        const a = this.approximate(), b = other.approximate();
+        if (typeof a === "number" && typeof b === "number") return new BreakChatGPT(a / b);
         return new BreakChatGPT({ a, b }, "quot");
     }
 
     power(other) {
-        const a = this.approximate();
-        const b = other.approximate();
-
-        if ((typeof a === "number" || typeof a === "bigint") &&
-            (typeof b === "number" || typeof b === "bigint")) {
+        const a = this.approximate(), b = other.approximate();
+        if (typeof a === "number" && typeof b === "number") {
             const val = Math.pow(a, b);
             return val <= 9.999e+9007199254740991 ? new BreakChatGPT(val) : new BreakChatGPT({ base: a, exponent: b }, "exp");
         }
-
         return new BreakChatGPT({ base: a, exponent: b }, "exp");
     }
 
