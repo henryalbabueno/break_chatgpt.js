@@ -1,45 +1,25 @@
+// example.js
 const { BreakChatGPT } = require("./break_chatgpt");
 
 // ---------------- Small towers ----------------
 const a = new BreakChatGPT(2).upArrow(3); // 2 ↑↑ 3
 console.log("2 ↑↑ 3 approximate:", a.approximate()); // 8
-console.log("2 ↑↑ 3 symbolic:", a.toSymbol());      // 2↑↑3
+console.log("2 ↑↑ 3 object:", a);                 // shows internal structure
 
 const b = new BreakChatGPT(3).upArrow(2); // 3 ↑↑ 2
 console.log("3 ↑↑ 2 approximate:", b.approximate()); // 9
-console.log("3 ↑↑ 2 symbolic:", b.toSymbol());      // 3↑↑2
+console.log("3 ↑↑ 2 object:", b);
 
 // ---------------- Medium towers ----------------
 const c = new BreakChatGPT(2).upArrow(6); // 2 ↑↑ 6
 console.log("2 ↑↑ 6 approximate:", c.approximate()); // 64
-console.log("2 ↑↑ 6 symbolic:", c.toSymbol());      // 2↑↑6
+console.log("2 ↑↑ 6 object:", c);
 
 // ---------------- Huge towers ----------------
 const d = new BreakChatGPT(3).upArrow(1000, 4); // 3 ↑↑↑↑ 1000
-console.log("3 ↑↑↑↑ 1000 symbolic:", d.toSymbol()); // 3↑↑↑↑1000
-console.log("3 ↑↑↑↑ 1000 approximate:", d.approximate()); // symbolic (cannot compute)
+console.log("3 ↑↑↑↑ 1000 approximate:", d.approximate()); // symbolic (object)
+console.log("3 ↑↑↑↑ 1000 object:", d);
 
 // ---------------- Arithmetic ----------------
 const sum = a.add(b); // 2 ↑↑ 3 + 3 ↑↑ 2
-console.log("Sum symbolic:", sum.toSymbol());
-
-const product = a.multiply(c); // 2 ↑↑ 3 * 2 ↑↑ 6
-console.log("Product symbolic:", product.toSymbol());
-
-const power = b.power(new BreakChatGPT(2)); // (3 ↑↑ 2) ^ 2
-console.log("Power symbolic:", power.toSymbol());
-console.log("Power approximate:", power.approximate());
-
-// ---------------- Comparisons ----------------
-console.log("a eq b?", a.eq(b)); // false
-console.log("a lt c?", a.lt(c)); // true
-console.log("b gt a?", b.gt(a)); // true
-
-// ---------------- Mixed numeric and symbolic ----------------
-const e = new BreakChatGPT(10).exp(1000); // 10^1000
-console.log("10^1000 symbolic:", e.toSymbol());
-console.log("10^1000 approximate:", e.approximate());
-
-// ---------------- Combining huge and small ----------------
-const combo = d.add(e);
-console.log("3 ↑↑↑↑ 1000 + 10^1000 symbolic:", combo.toSymbol());
+console.log("Sum approximate
