@@ -1,5 +1,3 @@
-// This is so memory efficient it doesn't need a min version
-
 // break_chatgpt.js
 
 class BreakChatGPT {
@@ -20,17 +18,6 @@ class BreakChatGPT {
         if(this.type==="up"){const{base,height,arrows}=this.value;if(arrows===1){try{return BigInt(base)**BigInt(height);}catch{return this;}}
             if(arrows===2){let r=BigInt(base);for(let i=1;i<height;i++){try{r=BigInt(base)**r}catch{return this;}}return r;}return this;}
         if(["sum","product","diff","quot"].includes(this.type))return this;return NaN;
-    }
-
-    toSymbol(){
-        if(this.type==="int")return this.value.toString();
-        if(this.type==="exp")return`${this.value.base}^${this.value.exponent}`;
-        if(this.type==="up"){const m=this.value.multiplier!==1?this.value.multiplier+"*":"";return`${m}${this.value.base}${"↑".repeat(this.value.arrows)}${this.value.height}`;}
-        if(this.type==="sum")return`(${this.value.a.toSymbol()} + ${this.value.b.toSymbol()})`;
-        if(this.type==="diff")return`(${this.value.a.toSymbol()} - ${this.value.b.toSymbol()})`;
-        if(this.type==="product")return`(${this.value.a.toSymbol()} * ${this.value.b.toSymbol()})`;
-        if(this.type==="quot")return`(${this.value.a.toSymbol()} / ${this.value.b.toSymbol()})`;
-        return "unknown";
     }
 
     add(other){const a=this.approximate(),b=other.approximate();
